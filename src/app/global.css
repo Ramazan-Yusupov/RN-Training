@@ -1,0 +1,18 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+@theme {
+  --font-mono: "JetBrainsMono_400Regular";
+  --color-app-background: #0a0a0a;
+  --color-app-surface: #171717;
+  --color-app-surface-raised: #1f2937;
+  --color-app-border: #334155;
+  --color-app-muted: #9ca3af;
+  --color-app-primary: #3b82f6;
+  --color-app-success: #22c55e;
+  --color-app-warning: #f59e0b;
+  --color-app-danger: #ef4444;
+}
