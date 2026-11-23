@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { guestStorage } from "@/shared/lib/storage";
 
-export type MicroBreak = { id: string; text: string; durationMinutes: number; enabled: boolean };
-type State = { items: MicroBreak[]; save: (item: MicroBreak) => void; remove: (id: string) => void; toggle: (id: string) => void; move: (id: string, direction: -1 | 1) => void };
+export type MicroBreak = { id: string; text: string; durationMinutes: number; enabled: boolean; order?: number };
+type State = { items: MicroBreak[]; replaceAll: (items: MicroBreak[]) => void; save: (item: MicroBreak) => void; remove: (id: string) => void; toggle: (id: string) => void; move: (id: string, direction: -1 | 1) => void };
 const defaults: MicroBreak[] = [
   { id: "stretch", text: "Встань и потянись.", durationMinutes: 2, enabled: true },
   { id: "eyes", text: "Посмотри вдаль и дай глазам отдохнуть.", durationMinutes: 2, enabled: true },
@@ -13,6 +13,7 @@ const defaults: MicroBreak[] = [
 ];
 export const useMicroBreakStore = create<State>()(persist((set) => ({
   items: defaults,
+  replaceAll: (items) => set({ items }),
   save: (item) => set((state) => ({ items: state.items.some((entry) => entry.id === item.id) ? state.items.map((entry) => entry.id === item.id ? item : entry) : [...state.items, item] })),
   remove: (id) => set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
   toggle: (id) => set((state) => ({ items: state.items.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item) })),

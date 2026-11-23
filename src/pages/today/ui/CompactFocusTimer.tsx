@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Modal, Pressable, StyleSheet, TextInput, View, type PressableStateCallbackType } from "react-native";
 import { Check, Minus, Pause, Play, Plus, RotateCcw, Settings2, SkipForward, X } from "lucide-react-native";
 
 import { useFocusTimerStore } from "@/features/focus-timer";
 import { AppText } from "@/shared/ui";
 import { theme } from "@/shared/config/theme";
+
+const pressFeedback = ({ pressed }: PressableStateCallbackType) => ({
+  opacity: pressed ? 0.72 : 1,
+  transform: [{ scale: pressed ? 0.94 : 1 }],
+});
 
 export function CompactFocusTimer() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -26,9 +31,10 @@ export function CompactFocusTimer() {
   const [breakMinutes, setBreakMinutes] = useState(breakDuration / 60);
   useEffect(() => {
     sync();
-    const timer = setInterval(sync, 250);
+    if (!running) return;
+    const timer = setInterval(sync, 1000);
     return () => clearInterval(timer);
-  }, [sync]);
+  }, [running, sync]);
   const time = `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
   const label = mode === "work" ? timerLabel : "ПЕРЕРЫВ";
   const openSettings = () => {
@@ -48,14 +54,14 @@ export function CompactFocusTimer() {
         {taskTitle ? <AppText className="text-gray-500" style={{ fontSize: 9 }} numberOfLines={1}>{taskTitle}</AppText> : null}
       </View>
       <View className="flex-row items-center gap-2">
-      <Pressable onPress={running ? pause : start} accessibilityRole="button" accessibilityLabel={running ? "Поставить таймер на паузу" : "Запустить таймер"} className="h-11 w-11 items-center justify-center rounded-lg bg-blue-500">
+      <Pressable onPressIn={running ? pause : start} style={pressFeedback} accessibilityRole="button" accessibilityLabel={running ? "Поставить таймер на паузу" : "Запустить таймер"} className="h-11 w-11 items-center justify-center rounded-lg bg-blue-500">
         {running ? <Pause color="#ffffff" fill="#ffffff" size={20} /> : <Play color="#ffffff" fill="#ffffff" size={20} />}
       </Pressable>
-      <Pressable onPress={reset} accessibilityRole="button" accessibilityLabel="Сбросить таймер" className="h-10 w-10 items-center justify-center rounded-lg border border-white/30">
+      <Pressable onPressIn={reset} style={pressFeedback} accessibilityRole="button" accessibilityLabel="Сбросить таймер" className="h-10 w-10 items-center justify-center rounded-lg border border-white/30">
         <RotateCcw color="#ffffff" size={17} />
       </Pressable>
-      <Pressable onPress={skip} accessibilityRole="button" accessibilityLabel="Переключить этап" className="h-10 w-10 items-center justify-center rounded-lg border border-white/30"><SkipForward color="#ffffff" size={17} /></Pressable>
-      <Pressable onPress={openSettings} accessibilityRole="button" accessibilityLabel="Настройки таймера" className="h-10 w-10 items-center justify-center rounded-lg border border-white"><Settings2 color="#ffffff" size={17} /></Pressable>
+      <Pressable onPressIn={skip} style={pressFeedback} accessibilityRole="button" accessibilityLabel="Переключить этап" className="h-10 w-10 items-center justify-center rounded-lg border border-white/30"><SkipForward color="#ffffff" size={17} /></Pressable>
+      <Pressable onPressIn={openSettings} style={pressFeedback} accessibilityRole="button" accessibilityLabel="Настройки таймера" className="h-10 w-10 items-center justify-center rounded-lg border border-white"><Settings2 color="#ffffff" size={17} /></Pressable>
       </View>
       <Modal visible={settingsOpen} transparent animationType="slide" onRequestClose={() => setSettingsOpen(false)}>
         <View style={styles.overlay}>

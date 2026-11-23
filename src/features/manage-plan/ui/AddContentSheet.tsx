@@ -228,6 +228,7 @@ export function AddContentSheet({ day, groups, initialGroupId, open, onClose, ed
                     <AppText className="text-gray-500" style={{ fontSize: 10 }}>Отдельно или внутри выбранной группы</AppText>
                   </View>
                 </Pressable>
+                <ScopeSelector value={scope} onChange={setScope} />
                 <AppText className="mt-1 text-gray-500" weight="semibold" style={{ fontSize: 10 }}>ВИДЖЕТЫ</AppText>
                 {([
                   ["xp-by-days", "XP по дням", "График набранного опыта", BarChart3],
@@ -243,7 +244,6 @@ export function AddContentSheet({ day, groups, initialGroupId, open, onClose, ed
                     </View>
                   </Pressable>
                 ))}
-                <ScopeSelector value={scope} onChange={setScope} />
               </ScrollView>
             ) : (
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 8 }}>

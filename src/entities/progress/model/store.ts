@@ -9,6 +9,8 @@ type ProgressState = {
   microBreaks: Record<number, number>;
   toggleTask: (taskId: string) => void;
   setMicroBreaks: (day: number, count: number) => void;
+  clearDay: (day: number, taskIds: string[]) => void;
+  replaceAll: (data: Pick<ProgressState, "startDate" | "completed" | "microBreaks">) => void;
 };
 
 export const useProgressStore = create<ProgressState>()(
@@ -28,6 +30,16 @@ export const useProgressStore = create<ProgressState>()(
         set((state) => ({
           microBreaks: { ...state.microBreaks, [day]: Math.max(0, Math.min(8, count)) },
         })),
+      clearDay: (day, taskIds) =>
+        set((state) => {
+          const completed = { ...state.completed };
+          taskIds.forEach((id) => delete completed[id]);
+          const microBreaks = { ...state.microBreaks };
+          delete microBreaks[day];
+          return { completed, microBreaks };
+        }),
+      replaceAll: ({ startDate, completed, microBreaks }) =>
+        set({ startDate, completed, microBreaks }),
     }),
     {
       name: "planer-mobile-guest-progress-v1",

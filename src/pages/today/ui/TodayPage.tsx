@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useDeferredValue, useState, type ReactNode } from "react";
 import { Plus, UserRound } from "lucide-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import ReorderableList, { reorderItems, useReorderableDrag, type ReorderableListReorderEvent } from "react-native-reorderable-list";
 import { useSharedValue, type SharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getGroupTasks, usePlanStore, useSelectedPlanDay, type PlanTask } from "@/entities/plan";
+import { getGroupTasks, usePlanStore, usePlanUiStore, type PlanTask } from "@/entities/plan";
 import { getProfileLevel, totalXp, useProgressStore } from "@/entities/progress";
 import { AddContentSheet } from "@/features/manage-plan";
 import { AppText, ProgressBar, SwipeToDelete } from "@/shared/ui";
@@ -86,10 +86,11 @@ export function TodayPage() {
   const [editingTask, setEditingTask] = useState<(typeof day.tasks)[number] | null>(null);
   const [editingGroup, setEditingGroup] = useState<(typeof day.groups)[number] | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<null | { kind: "task" | "group" | "widget"; id: string; title: string; hasSeries: boolean }>(null);
-  const selectedDay = usePlanStore((state) => state.selectedDay);
+  const selectedDay = usePlanUiStore((state) => state.selectedDay);
+  const displayedDayNumber = useDeferredValue(selectedDay);
   const template = usePlanStore((state) => state.template);
   const dayOverrides = usePlanStore((state) => state.dayOverrides);
-  const day = useSelectedPlanDay();
+  const day = dayOverrides[String(displayedDayNumber)] ?? template.days.find((item) => item.day === displayedDayNumber) ?? template.days[0]!;
   const completed = useProgressStore((state) => state.completed);
   const deleteTask = usePlanStore((state) => state.deleteTask);
   const deleteGroup = usePlanStore((state) => state.deleteGroup);
@@ -125,7 +126,7 @@ export function TodayPage() {
   const saveContentPositions = ({ from, to }: ReorderableListReorderEvent) => {
     const ordered = reorderItems(contentCards, from, to);
     const order = ordered.map((entry) => entry.kind === "group" ? { type: "group" as const, id: entry.group.id } : entry.kind === "task" ? { type: "task" as const, id: entry.task.id } : { type: "widget" as const, id: entry.widget.id });
-    setContentOrder(selectedDay, order);
+    setContentOrder(displayedDayNumber, order);
   };
   const requestTaskDelete = (task: (typeof day.tasks)[number]) => {
     const key = task.originId ?? task.id;
@@ -143,9 +144,9 @@ export function TodayPage() {
   };
   const confirmDelete = (scope: "day" | "all") => {
     if (!deleteTarget) return;
-    if (deleteTarget.kind === "task") deleteTask(selectedDay, deleteTarget.id, scope);
-    if (deleteTarget.kind === "group") deleteGroup(selectedDay, deleteTarget.id, scope);
-    if (deleteTarget.kind === "widget") deleteWidget(selectedDay, deleteTarget.id, scope);
+    if (deleteTarget.kind === "task") deleteTask(displayedDayNumber, deleteTarget.id, scope);
+    if (deleteTarget.kind === "group") deleteGroup(displayedDayNumber, deleteTarget.id, scope);
+    if (deleteTarget.kind === "widget") deleteWidget(displayedDayNumber, deleteTarget.id, scope);
     setDeleteTarget(null);
   };
 
@@ -260,7 +261,7 @@ export function TodayPage() {
                 </AppText>
               </Pressable>
               <GroupTaskList
-                dayNumber={selectedDay}
+                dayNumber={displayedDayNumber}
                 groupId={group.id}
                 tasks={tasks}
                 completedSwipeEnabled={swipeEnabled}
@@ -295,7 +296,7 @@ export function TodayPage() {
       />
       {addOpen ? (
         <AddContentSheet
-          day={selectedDay}
+          day={displayedDayNumber}
           groups={day.groups}
           initialGroupId={initialGroupId}
           editingTask={editingTask}

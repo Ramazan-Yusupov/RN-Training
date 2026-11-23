@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { AppFontProvider } from "@/shared/lib/fonts";
+import { AccountWorkspace } from "@/features/account";
 
 import "./global.css";
 
@@ -24,10 +25,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <AppFontProvider loaded={fontsLoaded && !fontError}>
+      <AccountWorkspace>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0a0a0a" } }}>
         <Stack.Screen name="(tabs)" />
       </Stack>
+      </AccountWorkspace>
     </AppFontProvider>
     </GestureHandlerRootView>
   );

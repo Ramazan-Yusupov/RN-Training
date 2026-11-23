@@ -7,8 +7,9 @@ import { createInitialPlan, getDay } from "./plan";
 import type { EditScope, PlanContentOrderItem, PlanDay, PlanWidgetType, TaskInput, UserPlanData } from "./types";
 
 type PlanState = UserPlanData & {
-  selectedDay: number;
-  setSelectedDay: (day: number) => void;
+  replaceAll: (data: UserPlanData) => void;
+  addDay: () => void;
+  removeLastDay: () => number | null;
   addGroup: (day: number, title: string, scope: EditScope) => string | null;
   addTask: (
     day: number,
@@ -28,6 +29,11 @@ type PlanState = UserPlanData & {
 };
 
 const initialPlan = createInitialPlan();
+
+export const usePlanUiStore = create<{ selectedDay: number; setSelectedDay: (day: number) => void }>((set) => ({
+  selectedDay: 1,
+  setSelectedDay: (selectedDay) => set({ selectedDay }),
+}));
 
 const createId = () =>
   globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -51,14 +57,14 @@ function updateOneDay(state: PlanState, dayNumber: number, updater: (day: PlanDa
 }
 
 function updateAllDays(state: PlanState, updater: (day: PlanDay) => PlanDay) {
+  // Массовая операция применяется к фактической версии каждого дня. После этого
+  // переопределения больше не могут скрыть добавленную во все дни сущность.
   return {
     template: {
       ...state.template,
-      days: state.template.days.map(updater),
+      days: state.template.days.map((day) => updater(state.dayOverrides[String(day.day)] ?? day)),
     },
-    dayOverrides: Object.fromEntries(
-      Object.entries(state.dayOverrides).map(([key, day]) => [key, updater(day)]),
-    ),
+    dayOverrides: {},
   };
 }
 
@@ -66,8 +72,32 @@ export const usePlanStore = create<PlanState>()(
   persist(
     (set, get) => ({
       ...initialPlan,
-      selectedDay: 1,
-      setSelectedDay: (day) => set({ selectedDay: day }),
+      replaceAll: ({ schemaVersion, template, dayOverrides }) =>
+        set({ schemaVersion, template, dayOverrides }),
+      addDay: () =>
+        set((state) => {
+          const lastDay = Math.max(...state.template.days.map((item) => item.day));
+          return {
+            template: {
+              ...state.template,
+              days: [...state.template.days, { day: lastDay + 1, groups: [], tasks: [], widgets: [], contentOrder: [] }],
+            },
+          };
+        }),
+      removeLastDay: () => {
+        const days = get().template.days;
+        if (days.length <= 1) return null;
+        const lastDay = Math.max(...days.map((item) => item.day));
+        set((state) => {
+          const dayOverrides = { ...state.dayOverrides };
+          delete dayOverrides[String(lastDay)];
+          return {
+            template: { ...state.template, days: state.template.days.filter((item) => item.day !== lastDay) },
+            dayOverrides,
+          };
+        });
+        return lastDay;
+      },
       addGroup: (day, title, scope) => {
         const normalizedTitle = title.trim();
         if (!normalizedTitle) return null;
@@ -86,10 +116,13 @@ export const usePlanStore = create<PlanState>()(
         const selected = getDay(get(), day);
         if (!selected || (groupId && !selected.groups.some((group) => group.id === groupId))) return null;
         if (groupId && selected.tasks.filter((task) => task.groupId === groupId).length >= 10) return null;
+        const selectedGroup = groupId ? selected.groups.find((group) => group.id === groupId) : undefined;
 
         const originId = createId();
         const updater = (current: PlanDay): PlanDay => {
-          if (groupId && !current.groups.some((group) => group.id === groupId)) return current;
+          const groups = groupId && selectedGroup && !current.groups.some((group) => group.id === groupId)
+            ? [...current.groups, selectedGroup]
+            : current.groups;
           if (groupId && current.tasks.filter((task) => task.groupId === groupId).length >= 10) return current;
           const task = {
             id: `${originId}-day-${current.day}`,
@@ -103,11 +136,12 @@ export const usePlanStore = create<PlanState>()(
           };
           return {
             ...current,
+            groups,
             tasks: [...current.tasks, task],
             contentOrder:
               groupId === null
                 ? appendContentOrder(current, { type: "task", id: task.id })
-                : current.contentOrder,
+                : appendContentOrder(current, { type: "group", id: groupId }),
           };
         };
         set((state) => (scope === "all" ? updateAllDays(state, updater) : updateOneDay(state, day, updater)));
@@ -208,14 +242,13 @@ export const usePlanStore = create<PlanState>()(
         schemaVersion: state.schemaVersion,
         template: state.template,
         dayOverrides: state.dayOverrides,
-        selectedDay: state.selectedDay,
       }),
     },
   ),
 );
 
 export function useSelectedPlanDay(): PlanDay {
-  const selectedDay = usePlanStore((state) => state.selectedDay);
+  const selectedDay = usePlanUiStore((state) => state.selectedDay);
   const template = usePlanStore((state) => state.template);
   const dayOverrides = usePlanStore((state) => state.dayOverrides);
   return getDay({ schemaVersion: 1, template, dayOverrides }, selectedDay) ?? template.days[0]!;

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 
 import { guestStorage } from "@/shared/lib/storage";
 
@@ -26,6 +26,23 @@ type FocusTimerState = {
 
 const WORK_SECONDS = 50 * 60;
 const BREAK_SECONDS = 10 * 60;
+let lastPersistedSettings: string | null = null;
+const focusSettingsStorage: StateStorage = {
+  getItem: async (name) => {
+    const value = await guestStorage.getItem(name);
+    lastPersistedSettings = value;
+    return value;
+  },
+  setItem: async (name, value) => {
+    if (value === lastPersistedSettings) return;
+    lastPersistedSettings = value;
+    await guestStorage.setItem(name, value);
+  },
+  removeItem: async (name) => {
+    lastPersistedSettings = null;
+    await guestStorage.removeItem(name);
+  },
+};
 
 export const useFocusTimerStore = create<FocusTimerState>()(persist((set, get) => ({
   mode: "work",
@@ -114,7 +131,7 @@ export const useFocusTimerStore = create<FocusTimerState>()(persist((set, get) =
   },
 }), {
   name: "planer-mobile-focus-timer-settings-v1",
-  storage: createJSONStorage(() => guestStorage),
+  storage: createJSONStorage(() => focusSettingsStorage),
   partialize: (state) => ({
     label: state.label,
     workDuration: state.workDuration,
