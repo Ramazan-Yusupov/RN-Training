@@ -1,7 +1,7 @@
 import type { PlanDay, PlanTask } from "@/entities/plan";
+import { useMicroBreakStore } from "@/entities/micro-break";
 
 export const xpConfig = {
-  microBreakCap: 8,
   microBreakXp: 2,
   dayBonus: 10,
 } as const;
@@ -30,7 +30,7 @@ export function isDayComplete(day: PlanDay, snapshot: ProgressSnapshot) {
 
 export function dayXp(day: PlanDay, snapshot: ProgressSnapshot) {
   const tasksXp = day.tasks.reduce((sum, task) => sum + taskXp(task, snapshot), 0);
-  const breaks = Math.min(snapshot.microBreaks[day.day] ?? 0, xpConfig.microBreakCap);
+  const breaks = Math.min(snapshot.microBreaks[day.day] ?? 0, useMicroBreakStore.getState().dailyLimit);
   return tasksXp + breaks * xpConfig.microBreakXp + (isDayComplete(day, snapshot) ? xpConfig.dayBonus : 0);
 }
 

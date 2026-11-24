@@ -10,6 +10,7 @@ type PlanState = UserPlanData & {
   replaceAll: (data: UserPlanData) => void;
   addDay: () => void;
   removeLastDay: () => number | null;
+  updatePlanInfo: (title: string, description: string) => void;
   addGroup: (day: number, title: string, scope: EditScope) => string | null;
   addTask: (
     day: number,
@@ -97,6 +98,13 @@ export const usePlanStore = create<PlanState>()(
           };
         });
         return lastDay;
+      },
+      updatePlanInfo: (title, description) => {
+        const normalizedTitle = title.trim();
+        if (!normalizedTitle) return;
+        set((state) => ({
+          template: { ...state.template, title: normalizedTitle, description: description.trim() },
+        }));
       },
       addGroup: (day, title, scope) => {
         const normalizedTitle = title.trim();

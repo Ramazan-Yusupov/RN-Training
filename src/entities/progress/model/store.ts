@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { guestStorage } from "@/shared/lib/storage";
+import { useMicroBreakStore } from "@/entities/micro-break";
 
 type ProgressState = {
   startDate: string;
@@ -10,6 +11,7 @@ type ProgressState = {
   toggleTask: (taskId: string) => void;
   setMicroBreaks: (day: number, count: number) => void;
   clearDay: (day: number, taskIds: string[]) => void;
+  reset: () => void;
   replaceAll: (data: Pick<ProgressState, "startDate" | "completed" | "microBreaks">) => void;
 };
 
@@ -28,7 +30,7 @@ export const useProgressStore = create<ProgressState>()(
         }),
       setMicroBreaks: (day, count) =>
         set((state) => ({
-          microBreaks: { ...state.microBreaks, [day]: Math.max(0, Math.min(8, count)) },
+          microBreaks: { ...state.microBreaks, [day]: Math.max(0, Math.min(useMicroBreakStore.getState().dailyLimit, count)) },
         })),
       clearDay: (day, taskIds) =>
         set((state) => {
@@ -38,6 +40,11 @@ export const useProgressStore = create<ProgressState>()(
           delete microBreaks[day];
           return { completed, microBreaks };
         }),
+      reset: () => set({
+        startDate: new Date().toISOString().slice(0, 10),
+        completed: {},
+        microBreaks: {},
+      }),
       replaceAll: ({ startDate, completed, microBreaks }) =>
         set({ startDate, completed, microBreaks }),
     }),

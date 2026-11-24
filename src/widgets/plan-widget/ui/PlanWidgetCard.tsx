@@ -33,6 +33,8 @@ export function PlanWidgetCard({ day, days, widget, dragHandle }: Props) {
   const [breakDraft, setBreakDraft] = useState("");
   const [breakMinutes, setBreakMinutes] = useState(2);
   const breakItems = useMicroBreakStore((state) => state.items);
+  const dailyBreakLimit = useMicroBreakStore((state) => state.dailyLimit);
+  const setDailyBreakLimit = useMicroBreakStore((state) => state.setDailyLimit);
   const saveBreak = useMicroBreakStore((state) => state.save);
   const removeBreak = useMicroBreakStore((state) => state.remove);
   const toggleBreak = useMicroBreakStore((state) => state.toggle);
@@ -48,6 +50,13 @@ export function PlanWidgetCard({ day, days, widget, dragHandle }: Props) {
   const maxXp = Math.max(1, ...values);
   const breakCount = microBreaks[day.day] ?? 0;
   const breakIdeas = breakItems.filter((item) => item.enabled);
+  const changeDailyLimit = (nextLimit: number) => {
+    const limit = Math.max(1, Math.min(50, nextLimit));
+    setDailyBreakLimit(limit);
+    Object.entries(useProgressStore.getState().microBreaks).forEach(([dayNumber, count]) => {
+      if (count > limit) setMicroBreaks(Number(dayNumber), limit);
+    });
+  };
 
   return (
     <View style={styles.card} className="gap-3 bg-[#0a0a0a] p-4">
@@ -90,8 +99,8 @@ export function PlanWidgetCard({ day, days, widget, dragHandle }: Props) {
           <View className="flex-row items-center gap-3">
             <Pressable onPress={() => setMicroBreaks(day.day, breakCount - 1)} className="h-10 w-10 items-center justify-center rounded-full bg-slate-900"><Minus color="#94a3b8" size={18} /></Pressable>
             <View className="flex-1 gap-2">
-              <AppText className="text-right text-blue-300" style={{ fontSize: 10 }}>{breakCount} из 8</AppText>
-              <ProgressBar value={breakCount} max={8} />
+              <AppText className="text-right text-blue-300" style={{ fontSize: 10 }}>{breakCount} из {dailyBreakLimit}</AppText>
+              <ProgressBar value={breakCount} max={dailyBreakLimit} />
             </View>
             <Pressable onPress={() => setMicroBreaks(day.day, breakCount + 1)} className="h-10 w-10 items-center justify-center rounded-full bg-blue-500"><Plus color="#ffffff" size={19} /></Pressable>
           </View>
@@ -143,7 +152,14 @@ export function PlanWidgetCard({ day, days, widget, dragHandle }: Props) {
               </Pressable>)}
             </ScrollView>
             <TextInput value={breakDraft} onChangeText={setBreakDraft} placeholder="Описание новой паузы" placeholderTextColor="#6b7280" style={styles.input} />
-            <View className="flex-row items-center justify-between rounded-xl border border-slate-700 p-2"><Pressable onPress={() => setBreakMinutes(Math.max(1, breakMinutes - 1))} className="h-10 w-10 items-center justify-center rounded-lg bg-slate-900"><Minus color="#fff" size={18} /></Pressable><AppText weight="bold" style={{ fontSize: 14 }}>{breakMinutes} мин</AppText><Pressable onPress={() => setBreakMinutes(Math.min(60, breakMinutes + 1))} className="h-10 w-10 items-center justify-center rounded-lg bg-blue-500"><Plus color="#fff" size={18} /></Pressable></View>
+            <View className="gap-2">
+              <AppText className="text-gray-400" style={{ fontSize: 9 }}>Количество микро-пауз в день</AppText>
+              <View className="flex-row items-center justify-between rounded-xl border border-slate-700 p-2"><Pressable onPress={() => changeDailyLimit(dailyBreakLimit + 1)} className="h-10 w-10 items-center justify-center rounded-lg bg-blue-500"><Plus color="#fff" size={18} /></Pressable><AppText weight="bold" style={{ fontSize: 13 }}>{dailyBreakLimit} кол. пауз</AppText><Pressable disabled={dailyBreakLimit <= 1} onPress={() => changeDailyLimit(dailyBreakLimit - 1)} className="h-10 w-10 items-center justify-center rounded-lg bg-slate-900"><Minus color={dailyBreakLimit <= 1 ? "#475569" : "#fff"} size={18} /></Pressable></View>
+            </View>
+            <View className="gap-2">
+              <AppText className="text-gray-400" style={{ fontSize: 9 }}>Длительность выбранной паузы</AppText>
+              <View className="flex-row items-center justify-between rounded-xl border border-slate-700 p-2"><Pressable onPress={() => setBreakMinutes(Math.min(60, breakMinutes + 1))} className="h-10 w-10 items-center justify-center rounded-lg bg-blue-500"><Plus color="#fff" size={18} /></Pressable><AppText weight="bold" style={{ fontSize: 14 }}>{breakMinutes} мин</AppText><Pressable disabled={breakMinutes <= 1} onPress={() => setBreakMinutes(Math.max(1, breakMinutes - 1))} className="h-10 w-10 items-center justify-center rounded-lg bg-slate-900"><Minus color={breakMinutes <= 1 ? "#475569" : "#fff"} size={18} /></Pressable></View>
+            </View>
             <Pressable onPress={() => { if (!breakDraft.trim()) return; saveBreak({ id: editingBreakId ?? `break-${Date.now()}`, text: breakDraft.trim(), durationMinutes: breakMinutes, enabled: true }); setEditingBreakId(null); setBreakDraft(""); setBreakMinutes(2); }} className="min-h-11 items-center justify-center rounded-xl bg-blue-500"><AppText weight="bold" style={{ fontSize: 11 }}>{editingBreakId ? "Сохранить изменения" : "Добавить паузу"}</AppText></Pressable>
           </View>
         </View>

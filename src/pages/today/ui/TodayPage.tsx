@@ -1,4 +1,5 @@
-import { useDeferredValue, useState, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useState, type ReactNode } from "react";
+import { Image } from "expo-image";
 import { Plus, UserRound } from "lucide-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import ReorderableList, { reorderItems, useReorderableDrag, type ReorderableListReorderEvent } from "react-native-reorderable-list";
@@ -97,6 +98,30 @@ export function TodayPage() {
   const deleteWidget = usePlanStore((state) => state.deleteWidget);
   const setContentOrder = usePlanStore((state) => state.setContentOrder);
   const microBreaks = useProgressStore((state) => state.microBreaks);
+  const startDate = useProgressStore((state) => state.startDate);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const selectCalendarDay = () => {
+      const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
+      const now = new Date();
+      if (!startYear || !startMonth || !startDay) return;
+      const startUtc = Date.UTC(startYear, startMonth - 1, startDay);
+      const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      const planDaysCount = usePlanStore.getState().template.days.length;
+      const currentDay = Math.max(1, Math.min(planDaysCount, Math.floor((todayUtc - startUtc) / 86400000) + 1));
+      usePlanUiStore.getState().setSelectedDay(currentDay);
+
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timeout = setTimeout(selectCalendarDay, Math.max(1000, nextMidnight.getTime() - now.getTime() + 250));
+    };
+
+    selectCalendarDay();
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [startDate]);
   const requiredTasks = day.tasks.filter((task) => task.required);
   const completedRequired = requiredTasks.filter((task) => completed[task.id]).length;
   const days = template.days.map((item) => dayOverrides[String(item.day)] ?? item);
@@ -153,7 +178,8 @@ export function TodayPage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0a0a0a" }} edges={["top"]}>
       <View className="mb-3 flex-row items-center justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-2">
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2">
+          <Image source={require("../../../../assets/images/LogoT.png")} contentFit="cover" cachePolicy="memory-disk" style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: "#000000" }} />
           <AppText weight="bold" style={{ fontSize: 17 }}>Планер</AppText>
           <View className="h-5 w-px bg-white/10" />
         </View>

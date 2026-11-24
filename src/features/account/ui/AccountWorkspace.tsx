@@ -6,6 +6,7 @@ import { usePlanStore } from "@/entities/plan";
 import { useProgressStore } from "@/entities/progress";
 import { useMicroBreakStore } from "@/entities/micro-break";
 import { useFocusTimerStore } from "@/features/focus-timer";
+import { useSettingsStore } from "@/entities/settings";
 import { supabase } from "@/shared/config/supabase";
 import { AppText } from "@/shared/ui";
 
@@ -45,7 +46,6 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
     const guest = takeAccountSnapshot();
     let active = true;
     let revision: string | null = null;
-    let rewards: Record<string, string> = {};
     let writing = false;
     let dirty = false;
     let conflictRetries = 0;
@@ -54,7 +54,7 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
     let syncInterval: ReturnType<typeof setInterval> | undefined;
     let realtimeChannel: ReturnType<typeof client.channel> | null = null;
     const stops: (() => void)[] = [];
-    const persistedStores = [usePlanStore, useProgressStore, useMicroBreakStore, useFocusTimerStore];
+    const persistedStores = [usePlanStore, useProgressStore, useMicroBreakStore, useFocusTimerStore, useSettingsStore];
     const oldStorages = persistedStores.map((store) => store.persist.getOptions().storage);
     persistedStores.forEach((store) => store.persist.setOptions({ storage: memoryStorage }));
 
@@ -70,7 +70,7 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
       dirty = false;
       setMessage("Сохранение…");
       const nextRevision = createRevision();
-      const payload = takeAccountSnapshot(rewards);
+      const payload = takeAccountSnapshot();
       const query = revision
         ? client.from("account_plans").update({ revision: nextRevision, payload }).eq("user_id", userId).eq("revision", revision).select("revision").maybeSingle()
         : client.from("account_plans").insert({ user_id: userId, revision: nextRevision, payload }).select("revision").single();
@@ -94,7 +94,7 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
             const forcedRevision = createRevision();
             const forced = await client.from("account_plans").update({
               revision: forcedRevision,
-              payload: takeAccountSnapshot(rewards),
+              payload: takeAccountSnapshot(),
             }).eq("user_id", userId).select("revision").single();
             if (!active) return;
             if (forced.error) {
@@ -129,13 +129,12 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
       if (timer) clearTimeout(timer);
       applyingRemote = true;
       revision = row.revision;
-      rewards = row.payload.settings.rewards;
       restoreAccountSnapshot(row.payload);
       applyingRemote = false;
       setMessage("");
     };
     const ready = () => {
-      [usePlanStore, useProgressStore, useMicroBreakStore, useFocusTimerStore].forEach((store) => stops.push(store.subscribe(scheduleSave)));
+      [usePlanStore, useProgressStore, useMicroBreakStore, useFocusTimerStore, useSettingsStore].forEach((store) => stops.push(store.subscribe(scheduleSave)));
       realtimeChannel = client
         .channel(`account-plan:${userId}`)
         .on(
@@ -163,7 +162,6 @@ function SignedInWorkspace({ userId, children }: { userId: string; children: Rea
       if (data?.payload) {
         if (!isAccountSnapshot(data.payload)) throw new Error("Облачная копия плана повреждена или имеет неизвестный формат.");
         revision = data.revision;
-        rewards = data.payload.settings.rewards;
         restoreAccountSnapshot(data.payload);
         ready();
         return;

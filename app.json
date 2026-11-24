@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "RN-Training",
+    "name": "Планер",
     "slug": "RN-Training",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/LogoT.png",
     "scheme": "rntraining",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -13,10 +13,8 @@
     "android": {
       "package": "com.developer747.rntraining",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/images/LogoT.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -29,11 +27,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#000000",
+          "image": "./assets/images/LogoT.png",
+          "imageWidth": 160
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
